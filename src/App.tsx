@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, BookOpen, Check, Clock3, History, Layers3, Leaf, Monitor, Settings2, ShieldCheck, Smartphone, X } from 'lucide-react'
+import { BookOpen, Check, History, Layers3, Settings2, Smartphone, X } from 'lucide-react'
 import { BenefitCard } from './components/BenefitCard'
 import { GuideDialog, InstallDialog } from './components/GuideDialog'
-import { HeartRateCard } from './components/HeartRateCard'
 import { HistoryDialog } from './components/HistoryDialog'
 import { LibraryDialog } from './components/LibraryDialog'
 import { Modal } from './components/Modal'
@@ -16,7 +15,7 @@ import { useWorkout } from './hooks/useWorkout'
 import { playCue, unlockAudio } from './lib/audio'
 import { newId } from './lib/ids'
 import { parseLibrary, saveToLibrary } from './lib/library'
-import { formatDuration, NORWEGIAN_PROGRAM, totalSeconds, type Program } from './lib/programs'
+import { NORWEGIAN_PROGRAM, type Program } from './lib/programs'
 import { readPreferences, readStored, useStorageAvailable, writeStored } from './lib/storage'
 
 type DialogState =
@@ -38,6 +37,15 @@ export default function App() {
   const storageAvailable = useStorageAvailable()
   const pwa = usePwa()
   const lastCue = useRef<string | null>(null)
+  // Wake Lock is requested asynchronously; only warn if it is still unavailable after a moment.
+  const wakeWanted = preferences.keepAwake && session.status === 'running'
+  const [wakeSettled, setWakeSettled] = useState(false)
+  useEffect(() => {
+    if (!wakeWanted) return
+    const timeout = window.setTimeout(() => setWakeSettled(true), 2000)
+    return () => { window.clearTimeout(timeout); setWakeSettled(false) }
+  }, [wakeWanted])
+  const wakeWarning = wakeWanted && wakeSettled && !wakeActive
   const openLibrary = () => setDialog({ type: 'library' })
 
   useEffect(() => { writeStored('preferences', preferences) }, [preferences])
@@ -53,6 +61,13 @@ export default function App() {
     return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update) }
   }, [])
   const completed = session.status === 'completed'
+  const phase = completed ? 'done' : position.step.kind
+  useEffect(() => {
+    // The whole viewport takes the current phase color, including the iOS status bar.
+    document.documentElement.dataset.phase = phase
+    const colors = { warmup: '#fff1a6', work: '#a8f0c4', recovery: '#ffb1b8', cooldown: '#ffb1b8', done: '#e9ebee' }
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors[phase])
+  }, [phase])
   useEffect(() => {
     const key = session.id ? `${session.id}:${position.stepIndex}:${completed}` : null
     if (key && lastCue.current && key !== lastCue.current && preferences.sound) playCue(completed)
@@ -76,31 +91,27 @@ export default function App() {
     setToast('프로그램을 저장했어요. 준비되면 시작하세요.')
   }
   const norwegian = session.program.id === NORWEGIAN_PROGRAM.id
-  const showBenefits = !(session.status === 'running' && position.step.kind === 'work')
 
   return <>
     <a className="skip-link" href="#workout">운동 타이머로 바로가기</a>
     <div className="app-shell">
       <header className="site-header">
-        <a className="wordmark" href={import.meta.env.BASE_URL} aria-label="four by four 홈"><span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span><span>four by four<span className="wordmark-caption">A LITTLE STRONGER, EVERY DAY</span></span></a>
-        <nav aria-label="메인 메뉴"><span className="active-nav"><span />운동하기</span><button onClick={openLibrary}><Layers3 size={17} /><span>프로그램</span></button><button onClick={() => setDialog({ type: 'history' })}><History size={17} /><span>내 기록</span></button></nav>
-        <button className="header-settings" onClick={() => setDialog({ type: 'settings' })} aria-label="개인 설정"><Settings2 size={19} /><span>설정</span></button>
+        <a className="wordmark" href={import.meta.env.BASE_URL} aria-label="four by four 홈"><span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span><span>four by four</span></a>
+        <nav aria-label="메인 메뉴"><button onClick={openLibrary} aria-label="프로그램"><Layers3 size={18} /><span>프로그램</span></button><button onClick={() => setDialog({ type: 'history' })} aria-label="기록"><History size={18} /><span>기록</span></button></nav>
+        <button className="header-settings" onClick={() => setDialog({ type: 'settings' })} aria-label="개인 설정"><Settings2 size={20} /></button>
       </header>
       <main id="workout">
-        <section className="intro-section" aria-labelledby="page-title"><div><p className="eyebrow"><span />LESS THINKING. MORE MOVING.</p><h1 id="page-title">움직임에만 집중하세요.</h1><p className="intro-description">순서와 시간은 맡겨두고, 오늘도 내 페이스로.</p></div><div className="daily-note"><span className="daily-leaf"><Leaf size={22} strokeWidth={1.6} /></span><span>나를 위한 작은 약속<strong>오늘의 {formatDuration(totalSeconds(session.program))}</strong></span></div></section>
-        {!storageAvailable && <div className="app-notice warning" role="alert">브라우저에 저장할 수 없어요. 타이머는 작동하지만 새로고침하면 기록·설정이 사라질 수 있어요. 중요한 프로그램은 파일로 내보내 주세요.</div>}
-        {workout.restored && <div className="app-notice restore-notice"><div><p>이전 타이머를 복원했어요. 진행 중이던 타이머는 화면을 닫아 둔 시간도 반영해요.</p>{preferences.sound && session.status === 'running' && <small>새로고침 후 알림음은 버튼을 한 번 눌러 다시 활성화해 주세요.</small>}</div><div className="restore-actions">{preferences.sound && session.status === 'running' && <button className="secondary-button" onClick={() => { unlockAudio(); dispatch({ type: 'dismissRestored', now: Date.now() }) }}>알림음 다시 활성화</button>}<button className="icon-button" aria-label="복원 안내 닫기" onClick={() => dispatch({ type: 'dismissRestored', now: Date.now() })}><X size={17} /></button></div></div>}
-        {!online && <div className="app-notice"><span>오프라인이에요. 이미 열린 타이머는 인터넷 없이 계속 사용할 수 있어요.</span></div>}
+        <h1 className="sr-only">four by four 운동 타이머</h1>
+        {!storageAvailable && <div className="app-notice warning" role="alert">브라우저에 저장할 수 없어요. 새로고침하면 기록·설정이 사라질 수 있어요.</div>}
+        {workout.restored && <div className="app-notice restore-notice"><p>이전 타이머를 이어서 보여드려요.</p><div className="restore-actions">{preferences.sound && session.status === 'running' && <button className="secondary-button" onClick={() => { unlockAudio(); dispatch({ type: 'dismissRestored', now: Date.now() }) }}>알림음 다시 활성화</button>}<button className="icon-button" aria-label="복원 안내 닫기" onClick={() => dispatch({ type: 'dismissRestored', now: Date.now() })}><X size={18} /></button></div></div>}
+        {!online && <div className="app-notice"><span>오프라인 · 타이머는 계속 작동해요.</span></div>}
         <div className="dashboard">
-          <TimerCard session={session} position={position} profile={preferences.profile} sound={preferences.sound} wakeActive={wakeActive} onPrograms={openLibrary} onSound={() => { if (!preferences.sound) unlockAudio(); setPreferences((value) => ({ ...value, sound: !value.sound })) }} onToggle={() => { if (preferences.sound) unlockAudio(); dispatch({ type: 'toggle', now: Date.now(), id: newId('session-') }) }} onReset={() => confirm('reset')} onSkip={() => confirm('skip')} />
+          <TimerCard session={session} position={position} profile={preferences.profile} sound={preferences.sound} wakeWarning={wakeWarning} onPrograms={openLibrary} onGuide={() => setDialog({ type: 'guide' })} onSettings={() => setDialog({ type: 'settings' })} onSound={() => { if (!preferences.sound) unlockAudio(); setPreferences((value) => ({ ...value, sound: !value.sound })) }} onToggle={() => { if (preferences.sound) unlockAudio(); dispatch({ type: 'toggle', now: Date.now(), id: newId('session-') }) }} onReset={() => confirm('reset')} onSkip={() => confirm('skip')} />
           <ProgramOverview program={session.program} stepIndex={position.stepIndex} complete={completed} busy={busy} onEdit={() => setDialog({ type: 'editor', program: session.program })} />
-          <HeartRateCard step={position.step} profile={preferences.profile} onSettings={() => setDialog({ type: 'settings' })} />
-          {showBenefits ? <BenefitCard stepIndex={position.stepIndex} norwegian={norwegian} onGuide={() => setDialog({ type: 'guide' })} /> : <aside className="focus-note"><div className="petal-art" aria-hidden="true"><i /><i /><i /><i /></div><span className="tiny-label">ONE STEP AT A TIME</span><h2>지금은, 나의 움직임에만.</h2><p>시간은 앱이 챙길게요.<br />몸의 느낌을 살피며 내 페이스를 이어가세요.</p><span className="focus-note-foot">회복 구간이 되면 짧은 코칭을 다시 보여드릴게요.</span></aside>}
-          <aside className="everywhere-card"><div className="device-icons"><Monitor size={23} strokeWidth={1.5} /><span>+</span><Smartphone size={21} strokeWidth={1.5} /></div><h2>어디서든, 나의 페이스.</h2><p>책상 앞에서도, 운동하는 곳에서도.<br />iPhone 홈 화면에 두고 더 가깝게 사용하세요.</p><button className="text-button" onClick={() => setDialog({ type: 'install' })}>홈 화면에 추가하는 방법<ArrowUpRight size={16} /></button><span className="local-data-note"><ShieldCheck size={13} />로그인 없이 · 기록은 이 기기에만</span></aside>
+          <BenefitCard stepIndex={position.stepIndex} norwegian={norwegian} onGuide={() => setDialog({ type: 'guide' })} />
         </div>
-        <div className="safety-banner"><ShieldCheck size={20} /><p><strong>내 몸의 신호가 먼저예요.</strong> 가슴 통증·어지럼·비정상적인 호흡곤란이 생기면 즉시 멈추세요. 질환이나 복용 약물이 있다면 고강도 운동 전에 의료진과 상의하세요.</p><button className="text-button" onClick={() => setDialog({ type: 'guide' })}><BookOpen size={15} />운동 가이드</button></div>
+        <nav className="page-links" aria-label="도움말"><button className="text-button" onClick={() => setDialog({ type: 'guide' })}><BookOpen size={17} />운동·안전 가이드</button><button className="text-button" onClick={() => setDialog({ type: 'install' })}><Smartphone size={17} />홈 화면에 추가</button></nav>
       </main>
-      <footer className="site-footer"><span>MADE FOR YOUR NEXT MOVE.</span><span><Clock3 size={13} />한 번에 한 구간씩, 꾸준히.</span></footer>
     </div>
     {toast && <div className="toast" role="status"><Check size={17} /><span>{toast}</span><button className="icon-button" onClick={() => setToast('')} aria-label="알림 닫기"><X size={16} /></button></div>}
     {pwa.updateReady && <div className="update-notice" role="status"><p>새 버전이 있어요. 운동과 편집을 마친 뒤 업데이트해 주세요.</p><div><button className="primary-button" disabled={busy || dialog !== null} onClick={pwa.update}>업데이트</button><button className="text-button" onClick={pwa.dismiss}>나중에</button></div></div>}

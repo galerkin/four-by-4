@@ -13,11 +13,11 @@ test('recovers a completed background session exactly once on startup', async ({
   }, NORWEGIAN_PROGRAM)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: '오늘도, 잘했어요.' })).toBeVisible()
-  await page.getByRole('button', { name: '내 기록', exact: true }).click()
+  await page.getByRole('button', { name: '기록', exact: true }).click()
   await expect(page.locator('.history-list li')).toHaveCount(1)
   await expect(page.locator('.record-meta')).toContainText('40분')
   await page.reload()
-  await page.getByRole('button', { name: '내 기록', exact: true }).click()
+  await page.getByRole('button', { name: '기록', exact: true }).click()
   await expect(page.locator('.history-list li')).toHaveCount(1)
 })
 
@@ -43,7 +43,7 @@ test('reports invalid block fields including fields inside collapsed details', a
   await expect(page.getByRole('dialog')).toBeVisible()
 })
 
-test('requests and releases screen wake lock without changing workout timing', async ({ page }) => {
+test('warns only when the screen cannot be kept awake', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'wakeLock', {
       configurable: true,
@@ -55,11 +55,20 @@ test('requests and releases screen wake lock without changing workout timing', a
   })
   await page.goto('/')
   await page.getByRole('button', { name: '운동 시작', exact: true }).click()
-  await expect(page.getByText('화면 켜짐 유지 중')).toBeVisible()
+  await page.waitForTimeout(2500)
+  await expect(page.getByText('화면이 꺼질 수 있어요')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '일시정지', exact: true })).toBeVisible()
+})
+
+test('shows a keep-screen-on warning when Wake Lock is unavailable', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: () => Promise.reject(new Error('blocked')) } })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '운동 시작', exact: true }).click()
+  await expect(page.getByText('화면이 꺼질 수 있어요')).toBeVisible({ timeout: 5000 })
   await page.getByRole('button', { name: '일시정지', exact: true }).click()
-  await expect(page.getByText('화면 켜짐 유지 중')).toHaveCount(0)
-  await page.getByRole('button', { name: '이어서 운동' }).click()
-  await expect(page.getByText('화면 켜짐 유지 중')).toBeVisible()
+  await expect(page.getByText('화면이 꺼질 수 있어요')).toHaveCount(0)
 })
 
 test('keeps long countdowns and full program lists within a small viewport', async ({ page }) => {
