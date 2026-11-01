@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "four by four — 오늘의 움직임",
+  "short_name": "four by four",
+  "description": "내 운동 프로그램의 순서와 시간을 안내하는 실행 도구",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f2",
+  "theme_color": "#f6f7f2",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
