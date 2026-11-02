@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Check, History, Layers3, Settings2, Smartphone, X } from 'lucide-react'
+import { BookOpen, Check, History, Languages, Layers3, Settings2, Smartphone, X } from 'lucide-react'
 import { BenefitCard } from './components/BenefitCard'
 import { GuideDialog, InstallDialog } from './components/GuideDialog'
 import { HistoryDialog } from './components/HistoryDialog'
@@ -15,7 +15,8 @@ import { useWorkout } from './hooks/useWorkout'
 import { playCue, unlockAudio } from './lib/audio'
 import { newId } from './lib/ids'
 import { parseLibrary, saveToLibrary } from './lib/library'
-import { NORWEGIAN_PROGRAM, type Program } from './lib/programs'
+import { DICTIONARIES, I18nContext, setLanguage } from './i18n'
+import { localizeProgram, NORWEGIAN_PROGRAM, type Program } from './lib/programs'
 import { readPreferences, readStored, useStorageAvailable, writeStored } from './lib/storage'
 
 type DialogState =
@@ -26,8 +27,16 @@ type DialogState =
 
 export default function App() {
   const workout = useWorkout()
-  const { session, position, dispatch } = workout
   const [preferences, setPreferences] = useState(readPreferences)
+  // Plain library code (durations, validation messages, generated names) reads the active language
+  // synchronously, so it is set before anything below renders. Korean is the default.
+  setLanguage(preferences.language)
+  const text = DICTIONARIES[preferences.language]
+  const { dispatch } = workout
+  // The built-in program is shown in the current language, whatever language it was saved in.
+  const viewProgram = localizeProgram(workout.session.program)
+  const session = viewProgram === workout.session.program ? workout.session : { ...workout.session, program: viewProgram }
+  const position = { ...workout.position, step: viewProgram.steps[workout.position.stepIndex] ?? workout.position.step }
   const [programs, setPrograms] = useState(() => parseLibrary(readStored('programs')))
   const [dialog, setDialog] = useState<DialogState>(null)
   const [toast, setToast] = useState('')
@@ -55,6 +64,10 @@ export default function App() {
   const openLibrary = () => setDialog({ type: 'library' })
 
   useEffect(() => { writeStored('preferences', preferences) }, [preferences])
+  useEffect(() => {
+    document.documentElement.lang = preferences.language
+    document.title = text.meta.title
+  }, [preferences.language, text])
   useEffect(() => { writeStored('programs', { version: 1, programs }) }, [programs])
   useEffect(() => {
     if (!toast) return
@@ -118,40 +131,40 @@ export default function App() {
     setPrograms(next)
     dispatch({ type: 'select', program, now: Date.now() })
     setDialog(null)
-    setToast('프로그램을 저장했어요. 준비되면 시작하세요.')
+    setToast(text.app.programSaved)
   }
   const norwegian = session.program.id === NORWEGIAN_PROGRAM.id
 
-  return <>
-    <a className="skip-link" href="#workout">운동 타이머로 바로가기</a>
+  return <I18nContext.Provider value={text}>
+    <a className="skip-link" href="#workout">{text.app.skipLink}</a>
     <div className={`app-shell ${busy ? 'is-working' : ''}`}>
       <header className="site-header" inert={busy}>
-        <a className="wordmark" href={import.meta.env.BASE_URL} aria-label="four by four 홈"><span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span><span>four by four</span></a>
-        <nav aria-label="메인 메뉴"><button onClick={openLibrary} aria-label="프로그램"><Layers3 size={18} /><span>프로그램</span></button><button onClick={() => setDialog({ type: 'history' })} aria-label="기록"><History size={18} /><span>기록</span></button></nav>
-        <button className="header-settings" onClick={() => setDialog({ type: 'settings' })} aria-label="개인 설정"><Settings2 size={20} /></button>
+        <a className="wordmark" href={import.meta.env.BASE_URL} aria-label={text.app.home}><span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span><span>four by four</span></a>
+        <nav aria-label={text.app.mainMenu}><button onClick={openLibrary} aria-label={text.app.programs}><Layers3 size={18} /><span>{text.app.programs}</span></button><button onClick={() => setDialog({ type: 'history' })} aria-label={text.app.history}><History size={18} /><span>{text.app.history}</span></button></nav>
+        <button className="header-settings" onClick={() => setDialog({ type: 'settings' })} aria-label={text.app.settings}><Settings2 size={20} /></button>
       </header>
       <main id="workout">
-        <h1 className="sr-only">four by four 운동 타이머</h1>
-        {!storageAvailable && <div className="app-notice warning" role="alert">브라우저에 저장할 수 없어요. 새로고침하면 기록·설정이 사라질 수 있어요.</div>}
-        {workout.restored && <div className="app-notice restore-notice"><p>이전 타이머를 이어서 보여드려요.</p><div className="restore-actions">{preferences.sound && session.status === 'running' && <button className="secondary-button" onClick={() => { unlockAudio(); dispatch({ type: 'dismissRestored', now: Date.now() }) }}>알림음 다시 활성화</button>}<button className="icon-button" aria-label="복원 안내 닫기" onClick={() => dispatch({ type: 'dismissRestored', now: Date.now() })}><X size={18} /></button></div></div>}
-        {!online && <div className="app-notice"><span>오프라인 · 타이머는 계속 작동해요.</span></div>}
+        <h1 className="sr-only">{text.app.heading}</h1>
+        {!storageAvailable && <div className="app-notice warning" role="alert">{text.app.storageWarning}</div>}
+        {workout.restored && <div className="app-notice restore-notice"><p>{text.app.restored}</p><div className="restore-actions">{preferences.sound && session.status === 'running' && <button className="secondary-button" onClick={() => { unlockAudio(); dispatch({ type: 'dismissRestored', now: Date.now() }) }}>{text.app.reenableSound}</button>}<button className="icon-button" aria-label={text.app.dismissRestored} onClick={() => dispatch({ type: 'dismissRestored', now: Date.now() })}><X size={18} /></button></div></div>}
+        {!online && <div className="app-notice"><span>{text.app.offline}</span></div>}
         <div className="dashboard">
           <TimerCard session={session} position={position} profile={preferences.profile} sound={preferences.sound} wakeWarning={wakeWarning} onPrograms={openLibrary} onSettings={() => setDialog({ type: 'settings' })} onSound={() => { if (!preferences.sound) unlockAudio(); setPreferences((value) => ({ ...value, sound: !value.sound })) }} onToggle={() => { if (preferences.sound) unlockAudio(); dispatch({ type: 'toggle', now: Date.now(), id: newId('session-') }) }} onReset={() => confirm('reset')} onSkip={() => confirm('skip')} />
           <ProgramOverview program={session.program} stepIndex={position.stepIndex} complete={completed} busy={busy} onEdit={() => setDialog({ type: 'editor', program: session.program })} />
           <BenefitCard stepIndex={position.stepIndex} norwegian={norwegian} onGuide={() => setDialog({ type: 'guide' })} />
         </div>
-        <nav className="page-links" aria-label="도움말"><button className="text-button" onClick={() => setDialog({ type: 'guide' })}><BookOpen size={17} />운동·안전 가이드</button><button className="text-button" onClick={() => setDialog({ type: 'install' })}><Smartphone size={17} />홈 화면에 추가</button></nav>
-        <p className="page-safety">가슴 통증·어지럼이 있으면 즉시 중지 · <button className="inline-link" onClick={() => setDialog({ type: 'guide' })}>안전 안내</button></p>
+        <nav className="page-links" aria-label={text.app.help}><button className="text-button" onClick={() => setDialog({ type: 'guide' })}><BookOpen size={17} />{text.app.guide}</button><button className="text-button" onClick={() => setDialog({ type: 'install' })}><Smartphone size={17} />{text.app.install}</button><button className="text-button" lang={preferences.language === 'ko' ? 'en' : 'ko'} aria-label={text.app.switchLanguageLabel} onClick={() => setPreferences((value) => ({ ...value, language: value.language === 'ko' ? 'en' : 'ko' }))}><Languages size={17} />{text.app.switchLanguage}</button></nav>
+        <p className="page-safety">{text.app.safety}<button className="inline-link" onClick={() => setDialog({ type: 'guide' })}>{text.app.safetyLink}</button></p>
       </main>
     </div>
-    {toast && <div className="toast" role="status"><Check size={17} /><span>{toast}</span><button className="icon-button" onClick={() => setToast('')} aria-label="알림 닫기"><X size={16} /></button></div>}
-    {pwa.updateReady && <div className="update-notice" role="status"><p>새 버전이 있어요. 운동과 편집을 마친 뒤 업데이트해 주세요.</p><div><button className="primary-button" disabled={busy || dialog !== null} onClick={pwa.update}>업데이트</button><button className="text-button" onClick={pwa.dismiss}>나중에</button></div></div>}
-    {dialog?.type === 'settings' && <SettingsDialog preferences={preferences} onClose={closeDialog} onSave={(value) => { if (value.sound) unlockAudio(); setPreferences(value); setDialog(null); setToast('내 페이스에 맞게 설정했어요.') }} />}
+    {toast && <div className="toast" role="status"><Check size={17} /><span>{toast}</span><button className="icon-button" onClick={() => setToast('')} aria-label={text.app.closeToast}><X size={16} /></button></div>}
+    {pwa.updateReady && <div className="update-notice" role="status"><p>{text.app.updateReady}</p><div><button className="primary-button" disabled={busy || dialog !== null} onClick={pwa.update}>{text.app.update}</button><button className="text-button" onClick={pwa.dismiss}>{text.app.later}</button></div></div>}
+    {dialog?.type === 'settings' && <SettingsDialog preferences={preferences} onClose={closeDialog} onSave={(value) => { if (value.sound) unlockAudio(); setPreferences(value); setDialog(null); setToast(DICTIONARIES[value.language].app.settingsSaved) }} />}
     {dialog?.type === 'guide' && <GuideDialog onClose={closeDialog} />}
     {dialog?.type === 'install' && <InstallDialog onClose={closeDialog} />}
     {dialog?.type === 'history' && <HistoryDialog history={workout.history} onClear={() => dispatch({ type: 'clearHistory', now: Date.now() })} onClose={closeDialog} />}
-    {dialog?.type === 'library' && <LibraryDialog programs={programs} selectedId={session.program.id} busy={busy} onClose={closeDialog} onSelect={(program) => { dispatch({ type: 'select', program, now: Date.now() }); setDialog(null) }} onEdit={(program) => setDialog({ type: 'editor', program })} onImport={(program) => setPrograms(saveToLibrary(programs, program))} onDelete={(id) => { setPrograms((items) => items.filter((item) => item.id !== id)); if (session.program.id === id) dispatch({ type: 'select', program: NORWEGIAN_PROGRAM, now: Date.now() }) }} />}
+    {dialog?.type === 'library' && <LibraryDialog programs={programs} selectedId={session.program.id} busy={busy} onClose={closeDialog} onSelect={(program) => { dispatch({ type: 'select', program, now: Date.now() }); setDialog(null) }} onEdit={(program) => setDialog({ type: 'editor', program })} onImport={(program) => setPrograms(saveToLibrary(programs, program))} onDelete={(id) => { setPrograms((items) => items.filter((item) => item.id !== id)); if (session.program.id === id) dispatch({ type: 'select', program: localizeProgram(NORWEGIAN_PROGRAM), now: Date.now() }) }} />}
     {dialog?.type === 'editor' && <ProgramEditor program={dialog.program} onSave={saveProgram} onClose={closeDialog} />}
-    {dialog?.type === 'confirm' && <Modal title={dialog.action === 'reset' ? '처음부터 다시 시작할까요?' : '현재 구간을 건너뛸까요?'} subtitle="타이머를 잠시 멈췄어요." onClose={closeDialog}><p className="confirmation-copy">{dialog.action === 'reset' ? '이번 진행은 기록하지 않고 초기화해요. 저장된 프로그램과 이전 운동 기록은 그대로 유지돼요.' : `‘${position.step.name}’의 남은 시간을 건너뛰어요. 건너뛴 시간은 실제 진행 시간에 포함하지 않고, 기록은 ‘일부 진행’으로 남아요.`}</p><div className="confirmation-actions"><button className="secondary-button" onClick={closeDialog}>{dialog.wasRunning ? '계속 운동하기' : '취소'}</button><button className="primary-button" onClick={() => { if (dialog.action === 'reset') dispatch({ type: 'reset', now: Date.now() }); else dispatch({ type: 'skip', now: Date.now(), resume: dialog.wasRunning }); setDialog(null) }}>{dialog.action === 'reset' ? '초기화' : '구간 건너뛰기'}</button></div></Modal>}
-  </>
+    {dialog?.type === 'confirm' && <Modal title={dialog.action === 'reset' ? text.confirm.resetTitle : text.confirm.skipTitle} subtitle={text.confirm.paused} onClose={closeDialog}><p className="confirmation-copy">{dialog.action === 'reset' ? text.confirm.resetBody : text.confirm.skipBody(position.step.name)}</p><div className="confirmation-actions"><button className="secondary-button" onClick={closeDialog}>{dialog.wasRunning ? text.confirm.keepGoing : text.confirm.cancel}</button><button className="primary-button" onClick={() => { if (dialog.action === 'reset') dispatch({ type: 'reset', now: Date.now() }); else dispatch({ type: 'skip', now: Date.now(), resume: dialog.wasRunning }); setDialog(null) }}>{dialog.action === 'reset' ? text.confirm.reset : text.confirm.skip}</button></div></Modal>}
+  </I18nContext.Provider>
 }

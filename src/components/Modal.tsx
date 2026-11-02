@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
+import { useT } from '../i18n'
 
 export function Modal({ title, subtitle, onClose, children, wide = false }: {
   title: string
@@ -9,6 +10,7 @@ export function Modal({ title, subtitle, onClose, children, wide = false }: {
   children: ReactNode
   wide?: boolean
 }) {
+  const close = useT().modal.close
   const ref = useRef<HTMLDialogElement>(null)
   const id = useId()
   useEffect(() => {
@@ -25,7 +27,7 @@ export function Modal({ title, subtitle, onClose, children, wide = false }: {
       <div className="modal-inner">
         <header className="modal-heading">
           <div><h2 id={id}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>
-          <button className="icon-button subtle" aria-label="닫기" onClick={onClose}><X size={21} /></button>
+          <button className="icon-button subtle" aria-label={close} onClick={onClose}><X size={21} /></button>
         </header>
         {children}
       </div>

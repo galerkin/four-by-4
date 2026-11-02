@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { isRecord, type HeartRateTarget } from './programs'
+import { parseLanguage, type Language } from '../i18n'
 
 const PREFIX = 'four-by-four:v1:'
 let storageAvailable = true
@@ -47,6 +48,8 @@ export interface Preferences {
   keepAwake: boolean
   /** How the saturated phase color shows step progress: a left→right sweep or a circle growing from the timer. */
   fill: FillStyle
+  /** Interface language. Korean by default. */
+  language: Language
 }
 export type FillStyle = 'sweep' | 'circle'
 export const parseFillStyle = (value: unknown): FillStyle => (value === 'circle' ? 'circle' : 'sweep')
@@ -60,8 +63,8 @@ export function parseProfile(value: unknown): HeartProfile | null {
 
 export function readPreferences(): Preferences {
   const data = readStored('preferences')
-  if (!isRecord(data)) return { profile: null, sound: true, keepAwake: true, fill: 'sweep' }
-  return { profile: parseProfile(data.profile), sound: typeof data.sound === 'boolean' ? data.sound : true, keepAwake: typeof data.keepAwake === 'boolean' ? data.keepAwake : true, fill: parseFillStyle(data.fill) }
+  if (!isRecord(data)) return { profile: null, sound: true, keepAwake: true, fill: 'sweep', language: 'ko' }
+  return { profile: parseProfile(data.profile), sound: typeof data.sound === 'boolean' ? data.sound : true, keepAwake: typeof data.keepAwake === 'boolean' ? data.keepAwake : true, fill: parseFillStyle(data.fill), language: parseLanguage(data.language) }
 }
 
 export function maximumHeartRate(profile: HeartProfile): number {

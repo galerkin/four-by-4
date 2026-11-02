@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import { isRecord, MAX_CUSTOM_PROGRAMS, NORWEGIAN_PROGRAM, parseProgram, type Program } from './programs'
 
 export function parseLibrary(value: unknown): Program[] {
@@ -18,9 +19,9 @@ export function parseLibrary(value: unknown): Program[] {
 
 export function saveToLibrary(programs: Program[], candidate: Program): Program[] {
   const program = parseProgram(candidate)
-  if (program.id === NORWEGIAN_PROGRAM.id) throw new Error('기본 프로그램은 복사해서 저장해 주세요.')
+  if (program.id === NORWEGIAN_PROGRAM.id) throw new Error(t().errors.builtInSave)
   const index = programs.findIndex((item) => item.id === program.id)
   if (index !== -1) return programs.map((item, at) => at === index ? program : item)
-  if (programs.length >= MAX_CUSTOM_PROGRAMS) throw new Error(`내 프로그램은 최대 ${MAX_CUSTOM_PROGRAMS}개까지 보관할 수 있어요.`)
+  if (programs.length >= MAX_CUSTOM_PROGRAMS) throw new Error(t().errors.libraryFull(MAX_CUSTOM_PROGRAMS))
   return [...programs, program]
 }

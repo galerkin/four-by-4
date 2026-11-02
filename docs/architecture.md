@@ -20,7 +20,8 @@
 
 | 파일 | 책임 |
 | --- | --- |
-| `src/lib/programs.ts` | 프로그램 스키마, 검증, 반복 확장, 기본 4×4 |
+| `src/i18n/{ko,en}.ts`, `src/i18n/index.ts` | 한국어(기준)·영어 사전. `Messages` 타입으로 두 사전의 구조를 맞추고, 컴포넌트는 `useT()`, 라이브러리 코드는 `t()`로 현재 언어를 읽음 |
+| `src/lib/programs.ts` | 프로그램 스키마, 검증, 반복 확장, 기본 4×4(`norwegianProgram()`/`localizeProgram()`로 현재 언어 표시) |
 | `src/lib/timer.ts` | 상태 전이, 시각 기준 경과 시간, 건너뛰기, 기록 변환 |
 | `src/hooks/useWorkout.ts` | UI 시계 이벤트와 저장/복원 연결 |
 | `src/lib/library.ts` | 사용자 프로그램 목록 검증·수정·개수 제한 |
