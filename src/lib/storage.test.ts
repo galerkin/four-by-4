@@ -24,14 +24,14 @@ describe('defensive browser persistence', () => {
   it('handles malformed JSON and unavailable storage', () => {
     vi.stubGlobal('localStorage', { getItem: () => '{' })
     expect(readStored('anything')).toBeNull()
-    expect(readPreferences()).toEqual({ profile: null, sound: true, keepAwake: true })
+    expect(readPreferences()).toEqual({ profile: null, sound: true, keepAwake: true, fill: 'sweep' })
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('full') } })
     expect(readStored('anything')).toBeNull()
     expect(writeStored('anything', {})).toBe(false)
   })
   it('normalizes malformed preferences without trusting imported data', () => {
-    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ profile: { method: 'age', value: 12 }, sound: 'yes', keepAwake: false }) })
-    expect(readPreferences()).toEqual({ profile: null, sound: true, keepAwake: false })
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ profile: { method: 'age', value: 12 }, sound: 'yes', keepAwake: false, fill: 'spiral' }) })
+    expect(readPreferences()).toEqual({ profile: null, sound: true, keepAwake: false, fill: 'sweep' })
   })
   it('generates IDs over non-secure LAN HTTP without randomUUID', () => {
     vi.stubGlobal('crypto', { getRandomValues: (array: Uint8Array) => array.fill(7) })

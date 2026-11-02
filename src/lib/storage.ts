@@ -45,7 +45,11 @@ export interface Preferences {
   profile: HeartProfile | null
   sound: boolean
   keepAwake: boolean
+  /** How the saturated phase color shows step progress: a left→right sweep or a circle growing from the timer. */
+  fill: FillStyle
 }
+export type FillStyle = 'sweep' | 'circle'
+export const parseFillStyle = (value: unknown): FillStyle => (value === 'circle' ? 'circle' : 'sweep')
 
 export function parseProfile(value: unknown): HeartProfile | null {
   if (!isRecord(value) || !Number.isInteger(value.value)) return null
@@ -56,8 +60,8 @@ export function parseProfile(value: unknown): HeartProfile | null {
 
 export function readPreferences(): Preferences {
   const data = readStored('preferences')
-  if (!isRecord(data)) return { profile: null, sound: true, keepAwake: true }
-  return { profile: parseProfile(data.profile), sound: typeof data.sound === 'boolean' ? data.sound : true, keepAwake: typeof data.keepAwake === 'boolean' ? data.keepAwake : true }
+  if (!isRecord(data)) return { profile: null, sound: true, keepAwake: true, fill: 'sweep' }
+  return { profile: parseProfile(data.profile), sound: typeof data.sound === 'boolean' ? data.sound : true, keepAwake: typeof data.keepAwake === 'boolean' ? data.keepAwake : true, fill: parseFillStyle(data.fill) }
 }
 
 export function maximumHeartRate(profile: HeartProfile): number {

@@ -652,3 +652,12 @@ button.stage-goal { min-height: 44px; }
 @media (max-width: 800px) {
   .app-shell.is-working .timer-card { justify-content: space-between; }
 }
+
+/* Step progress fill: pale phase color everywhere, saturated color growing with the step.
+   sweep (default) = left→right; circle = a circle growing from the countdown to cover the screen. */
+html[data-bg] body::before { background: var(--phase-edge); }
+html[data-bg] body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--phase-core); }
+html[data-bg='sweep'] body::after { transform: scaleX(var(--step-progress, 0)); transform-origin: left center; transition: transform .3s linear; will-change: transform; }
+html[data-bg='circle'] body::after { clip-path: circle(calc(var(--step-progress, 0) * var(--fill-reach, 150vmax)) at var(--fill-x, 50%) var(--fill-y, 40%)); transition: clip-path .3s linear; }
+html[data-bg][data-phase='done'] body::after { display: none; }
+@media (prefers-reduced-motion: reduce) { html[data-bg] body::after { transition: none; } }

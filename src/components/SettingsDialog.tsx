@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Heart, Monitor, Volume2 } from 'lucide-react'
-import { heartRateRange, maximumHeartRate, parseProfile, type Preferences } from '../lib/storage'
+import { Heart, Monitor, Paintbrush, Volume2 } from 'lucide-react'
+import { heartRateRange, maximumHeartRate, parseProfile, type FillStyle, type Preferences } from '../lib/storage'
 import { Modal } from './Modal'
 
 export function SettingsDialog({ preferences, onSave, onClose }: { preferences: Preferences; onSave: (value: Preferences) => void; onClose: () => void }) {
@@ -9,6 +9,7 @@ export function SettingsDialog({ preferences, onSave, onClose }: { preferences: 
   const [manual, setManual] = useState(preferences.profile?.method === 'manual' ? String(preferences.profile.value) : '')
   const [sound, setSound] = useState(preferences.sound)
   const [keepAwake, setKeepAwake] = useState(preferences.keepAwake)
+  const [fill, setFill] = useState<FillStyle>(preferences.fill)
   const [error, setError] = useState('')
   const input = method === 'age' ? age : manual
   const profile = input.trim() ? parseProfile({ method, value: Number(input) }) : null
@@ -18,7 +19,7 @@ export function SettingsDialog({ preferences, onSave, onClose }: { preferences: 
       <form onSubmit={(event) => {
         event.preventDefault()
         if (input.trim() && !profile) { setError(method === 'age' ? '18~100세 사이의 나이를 정수로 입력해 주세요.' : '최대 심박수를 80~240 bpm 사이의 정수로 입력해 주세요.'); return }
-        onSave({ profile, sound, keepAwake })
+        onSave({ profile, sound, keepAwake, fill })
       }}>
         <h3 className="form-section-title"><Heart size={17} /> 심박수 목표 설정</h3>
         <div className="segmented-control"><button type="button" aria-pressed={method === 'age'} className={method === 'age' ? 'selected' : ''} onClick={() => { setMethod('age'); setError('') }}>나이로 추정</button><button type="button" aria-pressed={method === 'manual'} className={method === 'manual' ? 'selected' : ''} onClick={() => { setMethod('manual'); setError('') }}>최대 심박수 직접 입력</button></div>
@@ -27,6 +28,9 @@ export function SettingsDialog({ preferences, onSave, onClose }: { preferences: 
         <p id="heart-input-help" className="field-help">{method === 'age' ? '성인용 추정식: 208 − (0.7 × 나이). 실제 최대 심박수와 차이가 날 수 있어요.' : '검사 등으로 확인한 최대 심박수가 있다면 입력하세요. 최대 강도 자가 검사를 권하는 기능은 아니에요.'}</p>
         {profile && target && <div className="heart-preview"><span>{method === 'age' ? '예상 ' : ''}최대 심박수 <strong>{maximumHeartRate(profile)} bpm</strong></span><span>4×4 고강도 목표 · 85–95%</span><strong className="preview-value">{target.min}–{target.max} <small>bpm</small></strong></div>}
         {preferences.profile && <button type="button" className="text-button clear-profile" onClick={() => { setAge(''); setManual(''); setError('') }}>심박수 설정 비우기</button>}
+        <h3 className="form-section-title"><Paintbrush size={17} /> 진행 색 채우기</h3>
+        <div className="segmented-control">{([['sweep', '왼쪽에서 오른쪽으로'], ['circle', '가운데서 퍼지는 원']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={fill === value} className={fill === value ? 'selected' : ''} onClick={() => setFill(value)}>{label}</button>)}</div>
+        <p className="field-help">구간이 지날수록 화면이 진한 색으로 차올라요.</p>
         <div className="settings-toggles">
           <label className="toggle-row"><span><Volume2 size={18} /><span><strong>구간 전환 알림음</strong><small>화면이 열려 있을 때 짧은 소리로 안내</small></span></span><input type="checkbox" role="switch" checked={sound} onChange={(event) => setSound(event.target.checked)} /><i className="switch-ui" aria-hidden="true" /></label>
           <label className="toggle-row"><span><Monitor size={18} /><span><strong>운동 중 화면 켜두기</strong><small>지원하는 브라우저에서 자동 잠금 방지</small></span></span><input type="checkbox" role="switch" checked={keepAwake} onChange={(event) => setKeepAwake(event.target.checked)} /><i className="switch-ui" aria-hidden="true" /></label>

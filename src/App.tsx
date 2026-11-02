@@ -68,6 +68,30 @@ export default function App() {
     const colors = { warmup: '#fff1a6', work: '#a8f0c4', recovery: '#ffb1b8', cooldown: '#ffb1b8', done: '#e9ebee' }
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors[phase])
   }, [phase])
+  // Step progress fills the whole screen with the saturated phase color: a left→right sweep
+  // (default) or a circle growing from the countdown. `?bg=sweep|circle` overrides for previews.
+  const fillOverride = new URLSearchParams(window.location.search).get('bg')
+  const fillStyle = fillOverride === 'sweep' || fillOverride === 'circle' ? fillOverride : preferences.fill
+  const stepFill = Math.min(1, Math.max(0, completed ? 1 : session.status === 'idle' ? 0 : position.stepProgress))
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.bg = fillStyle
+    root.style.setProperty('--step-progress', String(stepFill))
+    if (fillStyle !== 'circle') return
+    const place = () => {
+      const timer = document.querySelector('[role="timer"]')?.getBoundingClientRect()
+      const x = timer ? timer.left + timer.width / 2 : window.innerWidth / 2
+      const y = timer ? timer.top + timer.height / 2 : window.innerHeight / 2
+      const reach = Math.max(...[[0, 0], [window.innerWidth, 0], [0, window.innerHeight], [window.innerWidth, window.innerHeight]].map(([cx, cy]) => Math.hypot(cx - x, cy - y)))
+      root.style.setProperty('--fill-x', `${Math.round(x)}px`)
+      root.style.setProperty('--fill-y', `${Math.round(y)}px`)
+      root.style.setProperty('--fill-reach', `${Math.ceil(reach)}px`)
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, { passive: true })
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place) }
+  }, [fillStyle, stepFill])
   useEffect(() => {
     const key = session.id ? `${session.id}:${position.stepIndex}:${completed}` : null
     if (key && lastCue.current && key !== lastCue.current && preferences.sound) playCue(completed)
