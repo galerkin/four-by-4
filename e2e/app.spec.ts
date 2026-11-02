@@ -55,7 +55,8 @@ test('automatically transitions through work, recovery, and completion without d
   await page.clock.fastForward(600_000)
   await expect(page.getByRole('heading', { name: '고강도 1', exact: true })).toBeVisible()
   await expect(page.getByRole('timer')).toHaveText('04:00')
-  await expect(page.locator('.stage-goal')).toContainText('85–95%')
+  // Focus mode: the countdown and next step only; target intensity is shown before starting.
+  await expect(page.locator('.stage-goal')).toHaveCount(0)
   await expect(page.getByRole('button', { name: /bpm 계산/ })).toHaveCount(0)
   await page.clock.fastForward(240_000)
   await expect(page.getByRole('heading', { name: '활동성 회복', exact: true })).toBeVisible()
@@ -123,9 +124,12 @@ test('calculates optional targets and persists preferences without measuring hea
   await expect(page.getByRole('button', { name: '알림음 켜기' })).toHaveAttribute('aria-pressed', 'false')
   await page.getByRole('button', { name: '운동 시작', exact: true }).click()
   await page.clock.fastForward(600_000)
-  await expect(page.locator('.stage-goal')).toContainText('153–171 bpm')
+  await expect(page.locator('.stage-goal')).toHaveCount(0)
+  await page.getByRole('button', { name: '일시정지', exact: true }).click()
+  await page.getByRole('button', { name: '처음부터 다시' }).click()
+  await page.getByRole('button', { name: '초기화', exact: true }).click()
   await page.reload()
-  await expect(page.locator('.stage-goal')).toContainText('153–171 bpm · 추정')
+  await expect(page.locator('.stage-goal')).toContainText('108–126 bpm · 추정')
   await expect(page.getByRole('button', { name: '알림음 켜기' })).toBeVisible()
 })
 
@@ -231,23 +235,43 @@ test('first iPhone screen ends at the total progress line; the program order is 
   test.skip(browserName !== 'webkit', 'iPhone-sized layout check')
   await page.setViewportSize({ width: 440, height: 956 })
   await freeze(page)
-  for (const state of ['idle', 'running']) {
-    if (state === 'running') {
-      await page.getByRole('button', { name: '운동 시작', exact: true }).click()
-      await expect(page.locator('.site-header')).toBeHidden()
-      await page.waitForTimeout(500)
-    }
-    await page.evaluate(() => window.scrollTo(0, 0))
-    const progress = (await page.locator('.total-progress').boundingBox())!
-    const order = (await page.locator('.program-overview').boundingBox())!
-    expect(progress.y + progress.height, state).toBeLessThanOrEqual(956)
-    expect(progress.y + progress.height, state).toBeGreaterThan(956 - 40)
-    expect(order.y, state).toBeGreaterThanOrEqual(956)
-  }
-  // The safety line lives at the very end of the page, after the guide links.
+  const progress = (await page.locator('.total-progress').boundingBox())!
+  expect(progress.y + progress.height).toBeLessThanOrEqual(956)
+  expect(progress.y + progress.height).toBeGreaterThan(956 - 40)
+  expect((await page.locator('.program-overview').boundingBox())!.y).toBeGreaterThanOrEqual(956)
   const safety = (await page.getByText('가슴 통증·어지럼이 있으면 즉시 중지').boundingBox())!
-  const links = (await page.locator('.page-links').boundingBox())!
-  expect(safety.y).toBeGreaterThan(links.y)
+  expect(safety.y).toBeGreaterThan((await page.locator('.page-links').boundingBox())!.y)
+})
+
+test('while playing, only the big countdown, phase bar, next step, controls and sound remain', async ({ page, browserName }) => {
+  test.skip(browserName !== 'webkit', 'iPhone-sized layout check')
+  await page.setViewportSize({ width: 440, height: 956 })
+  await freeze(page)
+  const idleSize = await page.getByRole('timer').evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+  await page.getByRole('button', { name: '운동 시작', exact: true }).click()
+  for (const state of ['running', 'paused']) {
+    if (state === 'paused') await page.getByRole('button', { name: '일시정지', exact: true }).click()
+    await page.waitForTimeout(450)
+    const card = page.getByLabel('운동 타이머')
+    for (const selector of ['.step-count', '.stage-goal', '.stage-cue', '.overall-time', '.total-progress', '.program-picker']) {
+      await expect(card.locator(selector), `${state} ${selector}`).toHaveCount(0)
+    }
+    await expect(page.locator('.site-header')).toBeHidden()
+    for (const visible of [page.getByRole('timer'), card.locator('.stage-segments'), card.locator('.timer-next'), page.getByRole('button', { name: '처음부터 다시' }), page.getByRole('button', { name: '다음 구간으로' }), page.getByRole('button', { name: /알림음/ })]) {
+      await expect(visible, state).toBeVisible()
+    }
+    // The phase name is still announced to assistive technology.
+    await expect(card.getByRole('heading', { name: '워밍업' })).toBeAttached()
+    const timer = (await page.getByRole('timer').boundingBox())!
+    const size = await page.getByRole('timer').evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+    expect(size, state).toBeGreaterThan(idleSize * 1.15)
+    expect(timer.x).toBeGreaterThanOrEqual(0)
+    expect(timer.x + timer.width).toBeLessThanOrEqual(440)
+    expect(await page.getByRole('timer').evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true)
+    const controls = (await page.locator('.timer-controls').boundingBox())!
+    expect(controls.y + controls.height, state).toBeLessThanOrEqual(956)
+    expect((await page.locator('.program-overview').boundingBox())!.y, state).toBeGreaterThanOrEqual(956)
+  }
 })
 
 test('protects unsaved edits and restores focus when closing a dialog', async ({ page }) => {

@@ -640,3 +640,15 @@ button.stage-goal { min-height: 44px; }
 @media (prefers-reduced-motion: reduce) { .site-header, .timer-card { transition: none; } }
 .page-links { padding-bottom: 4px; }
 .page-safety { padding: 0 2px max(32px, env(safe-area-inset-bottom)); margin: 0; }
+/* Focus mode (running or paused): a giant countdown, the phase bar, next step and controls only. */
+.timer-card.is-focus .stage-panel { container-type: inline-size; justify-content: center; }
+.timer-card.is-focus .timer-number { font-size: 38cqw; line-height: 1; margin: 0 0 0 -.03em; letter-spacing: -.06em; }
+.timer-card.is-focus .timer-number.long-time { font-size: 30cqw; }
+.timer-card.is-focus .stage-segments { margin-top: 28px; }
+.timer-card.is-focus .stage-segments > span, .timer-card.is-focus .stage-segments i { height: 10px; }
+.timer-card.is-focus .timer-next { font-size: 22px; padding: 18px 20px; margin: 28px 0 18px; }
+.timer-card.is-focus .next-time { font-size: 26px; }
+.timer-card.is-focus .timer-toolbar { justify-content: flex-end; }
+@media (max-width: 800px) {
+  .app-shell.is-working .timer-card { justify-content: space-between; }
+}
