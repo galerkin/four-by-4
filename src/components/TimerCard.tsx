@@ -10,7 +10,6 @@ interface Props {
   onReset: () => void
   onSkip: () => void
   onPrograms: () => void
-  onGuide: () => void
   onSettings: () => void
   sound: boolean
   onSound: () => void
@@ -18,7 +17,7 @@ interface Props {
   profile: HeartProfile | null
 }
 
-export function TimerCard({ session, position, onToggle, onReset, onSkip, onPrograms, onGuide, onSettings, sound, onSound, wakeWarning, profile }: Props) {
+export function TimerCard({ session, position, onToggle, onReset, onSkip, onPrograms, onSettings, sound, onSound, wakeWarning, profile }: Props) {
   const { step, stepIndex, remainingSeconds, progress, elapsedMs, totalMs } = position
   const steps = session.program.steps
   const complete = session.status === 'completed'
@@ -51,6 +50,7 @@ export function TimerCard({ session, position, onToggle, onReset, onSkip, onProg
             ? <button className="stage-goal" onClick={onSettings}><Heart size={20} /><span>목표 최대심박 {step.target.min}–{step.target.max}%</span><span className="goal-action">bpm 계산</span></button>
             : <p className="stage-goal"><Heart size={20} /><span>{bpm ? `목표 ${bpm.min}–${bpm.max} bpm · 추정` : `목표 최대심박 ${step.target.min}–${step.target.max}%`}</span></p>)
           : <p className="stage-goal"><span>{KIND_LABELS[step.kind]} · 내 페이스대로</span></p>)}
+        {wakeWarning && <p className="timer-warning">화면이 꺼질 수 있어요. 화면을 켜 두세요.</p>}
         <p className="stage-cue">{complete ? '물을 마시고 편안해질 때까지 쉬어가세요.' : step.cue || '내 몸의 신호에 귀 기울여요.'}</p>
         <div className="stage-segments" aria-hidden="true">{steps.map((item, index) => <span key={item.id} className={`kind-${item.kind} ${index < stepIndex || complete ? 'done' : ''} ${index === stepIndex && !complete ? 'current' : ''}`}><i style={{ width: index < stepIndex || complete ? '100%' : index === stepIndex ? `${position.stepProgress * 100}%` : '0%' }} /></span>)}</div>
       </div>
@@ -62,8 +62,6 @@ export function TimerCard({ session, position, onToggle, onReset, onSkip, onProg
       </div>
       <div className="overall-time"><span>{idle ? '총' : '전체 남은'} <strong>{formatTime((totalMs - elapsedMs) / 1000)}</strong></span></div>
       <div className="total-progress" role="progressbar" aria-label="전체 프로그램 진행률" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ width: `${progress * 100}%` }} /></div>
-      {wakeWarning && <p className="timer-warning">화면이 꺼질 수 있어요. 화면을 켜 두세요.</p>}
-      {idle && <p className="pre-start-safety">가슴 통증·어지럼이 있으면 즉시 중지 · <button className="inline-link" onClick={onGuide}>안전 안내</button></p>}
       <p className="sr-only" role="status">{complete ? '운동 프로그램이 끝났습니다.' : `${step.name}. ${active ? '진행 중' : session.status === 'paused' ? '일시정지' : '시작 전'}. ${step.cue}`}</p>
     </section>
   )

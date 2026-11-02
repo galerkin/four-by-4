@@ -576,7 +576,7 @@ button.stage-goal { min-height: 44px; }
 .overall-time { margin-top: 16px; font-size: 16px; font-weight: 600; color: var(--ink); }
 .overall-time strong { font-size: 17px; color: var(--ink); font-weight: 750; }
 .total-progress { height: 5px; }
-.timer-warning, .pre-start-safety { margin-top: 12px; font-size: 15px; font-weight: 550; color: var(--ink); line-height: 1.5; }
+.timer-warning, .page-safety { margin-top: 12px; font-size: 15px; font-weight: 550; color: var(--ink); line-height: 1.5; }
 .inline-link { background: none; padding: 0; min-height: 44px; font-weight: 750; text-decoration: underline; text-underline-offset: 4px; color: var(--ink); }
 .completion-display { gap: 14px; min-height: 150px; }
 .completion-display strong { font-size: 24px; font-weight: 750; }
@@ -623,3 +623,20 @@ button.stage-goal { min-height: 44px; }
   .timer-next { font-size: 15px; padding: 12px 14px; }
   .secondary-control { width: 52px; }
 }
+
+/* Header is shown only before/after a workout; it folds away while one is under way. */
+.site-header { max-height: 120px; overflow: hidden; transition: max-height .35s ease, min-height .35s ease, opacity .25s ease; }
+.app-shell.is-working .site-header { max-height: 0; min-height: 0; opacity: 0; visibility: hidden; }
+/* Mobile: the timer exactly fills the first screen, ending at the total-progress line.
+   Everything else (today's order, tips, guide links) starts below the fold. */
+@media (max-width: 800px) {
+  .app-shell { --header-h: 60px; }
+  .timer-card { min-height: calc(100svh - env(safe-area-inset-top) - var(--header-h) - 2px); padding-bottom: max(14px, env(safe-area-inset-bottom)); transition: min-height .35s ease; }
+  .app-shell.is-working .timer-card { min-height: calc(100svh - env(safe-area-inset-top) - 2px); padding-top: 10px; }
+  .timer-card .stage-panel { justify-content: center; }
+  .dashboard > .program-overview { margin-top: 18px; }
+}
+.timer-warning { margin: 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { .site-header, .timer-card { transition: none; } }
+.page-links { padding-bottom: 4px; }
+.page-safety { padding: 0 2px max(32px, env(safe-area-inset-bottom)); margin: 0; }

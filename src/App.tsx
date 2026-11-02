@@ -94,8 +94,8 @@ export default function App() {
 
   return <>
     <a className="skip-link" href="#workout">운동 타이머로 바로가기</a>
-    <div className="app-shell">
-      <header className="site-header">
+    <div className={`app-shell ${busy ? 'is-working' : ''}`}>
+      <header className="site-header" inert={busy}>
         <a className="wordmark" href={import.meta.env.BASE_URL} aria-label="four by four 홈"><span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span><span>four by four</span></a>
         <nav aria-label="메인 메뉴"><button onClick={openLibrary} aria-label="프로그램"><Layers3 size={18} /><span>프로그램</span></button><button onClick={() => setDialog({ type: 'history' })} aria-label="기록"><History size={18} /><span>기록</span></button></nav>
         <button className="header-settings" onClick={() => setDialog({ type: 'settings' })} aria-label="개인 설정"><Settings2 size={20} /></button>
@@ -106,11 +106,12 @@ export default function App() {
         {workout.restored && <div className="app-notice restore-notice"><p>이전 타이머를 이어서 보여드려요.</p><div className="restore-actions">{preferences.sound && session.status === 'running' && <button className="secondary-button" onClick={() => { unlockAudio(); dispatch({ type: 'dismissRestored', now: Date.now() }) }}>알림음 다시 활성화</button>}<button className="icon-button" aria-label="복원 안내 닫기" onClick={() => dispatch({ type: 'dismissRestored', now: Date.now() })}><X size={18} /></button></div></div>}
         {!online && <div className="app-notice"><span>오프라인 · 타이머는 계속 작동해요.</span></div>}
         <div className="dashboard">
-          <TimerCard session={session} position={position} profile={preferences.profile} sound={preferences.sound} wakeWarning={wakeWarning} onPrograms={openLibrary} onGuide={() => setDialog({ type: 'guide' })} onSettings={() => setDialog({ type: 'settings' })} onSound={() => { if (!preferences.sound) unlockAudio(); setPreferences((value) => ({ ...value, sound: !value.sound })) }} onToggle={() => { if (preferences.sound) unlockAudio(); dispatch({ type: 'toggle', now: Date.now(), id: newId('session-') }) }} onReset={() => confirm('reset')} onSkip={() => confirm('skip')} />
+          <TimerCard session={session} position={position} profile={preferences.profile} sound={preferences.sound} wakeWarning={wakeWarning} onPrograms={openLibrary} onSettings={() => setDialog({ type: 'settings' })} onSound={() => { if (!preferences.sound) unlockAudio(); setPreferences((value) => ({ ...value, sound: !value.sound })) }} onToggle={() => { if (preferences.sound) unlockAudio(); dispatch({ type: 'toggle', now: Date.now(), id: newId('session-') }) }} onReset={() => confirm('reset')} onSkip={() => confirm('skip')} />
           <ProgramOverview program={session.program} stepIndex={position.stepIndex} complete={completed} busy={busy} onEdit={() => setDialog({ type: 'editor', program: session.program })} />
           <BenefitCard stepIndex={position.stepIndex} norwegian={norwegian} onGuide={() => setDialog({ type: 'guide' })} />
         </div>
         <nav className="page-links" aria-label="도움말"><button className="text-button" onClick={() => setDialog({ type: 'guide' })}><BookOpen size={17} />운동·안전 가이드</button><button className="text-button" onClick={() => setDialog({ type: 'install' })}><Smartphone size={17} />홈 화면에 추가</button></nav>
+        <p className="page-safety">가슴 통증·어지럼이 있으면 즉시 중지 · <button className="inline-link" onClick={() => setDialog({ type: 'guide' })}>안전 안내</button></p>
       </main>
     </div>
     {toast && <div className="toast" role="status"><Check size={17} /><span>{toast}</span><button className="icon-button" onClick={() => setToast('')} aria-label="알림 닫기"><X size={16} /></button></div>}

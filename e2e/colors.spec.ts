@@ -39,6 +39,9 @@ test('fills the screen with yellow, green and red phase gradients and keeps cont
   await expect(panel.getByRole('heading')).toHaveText('쿨다운')
   await page.clock.fastForward(300_000)
   await expect(panel.getByRole('heading')).toHaveText('오늘도, 잘했어요.')
+  // The header folds back in after the workout; audit once the transition has finished.
+  await page.clock.resume()
+  await expect(page.locator('.site-header')).toHaveCSS('opacity', '1')
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()).violations).toEqual([])
 })
 

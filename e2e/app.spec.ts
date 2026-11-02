@@ -27,7 +27,6 @@ test('starts with an honest 40-minute program and no measured heart rate', async
   await expect(page.locator('.stage-goal')).toContainText('목표 최대심박 60–70%')
   await expect(page.locator('.stage-goal')).not.toContainText('bpm ·')
   await expect(page.getByRole('button', { name: /bpm 계산/ })).toBeVisible()
-  await expect(page.getByText('가슴 통증·어지럼이 있으면 즉시 중지')).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -58,7 +57,6 @@ test('automatically transitions through work, recovery, and completion without d
   await expect(page.getByRole('timer')).toHaveText('04:00')
   await expect(page.locator('.stage-goal')).toContainText('85–95%')
   await expect(page.getByRole('button', { name: /bpm 계산/ })).toHaveCount(0)
-  await expect(page.getByText('가슴 통증·어지럼이 있으면 즉시 중지')).toHaveCount(0)
   await page.clock.fastForward(240_000)
   await expect(page.getByRole('heading', { name: '활동성 회복', exact: true })).toBeVisible()
   await expect(page.getByRole('timer')).toHaveText('03:00')
@@ -212,16 +210,44 @@ test('keeps imported names as plain text rather than HTML', async ({ page }) => 
   await expect(page.getByRole('button', { name: `${name} 선택` })).toBeVisible()
 })
 
-test('blocks program edits and switches while a session is active', async ({ page }) => {
+test('folds the header and blocks program changes while a session is under way', async ({ page }) => {
   await freeze(page)
+  await expect(page.locator('.site-header')).toBeVisible()
   await page.getByRole('button', { name: '운동 시작', exact: true }).click()
+  await expect(page.locator('.site-header')).toBeHidden()
+  await expect(page.getByRole('button', { name: '프로그램', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /프로그램 변경/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '편집', exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: '프로그램', exact: true }).click()
-  await expect(page.getByRole('button', { name: '새 프로그램', exact: true })).toBeDisabled()
-  await expect(page.getByRole('button', { name: '노르웨지안 4×4 선택', exact: true })).toBeDisabled()
-  await page.getByRole('button', { name: '닫기', exact: true }).click()
   await page.getByRole('button', { name: '일시정지', exact: true }).click()
+  await expect(page.locator('.site-header')).toBeHidden()
   await expect(page.getByRole('button', { name: '편집', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: '처음부터 다시' }).click()
+  await page.getByRole('button', { name: '초기화', exact: true }).click()
+  await expect(page.locator('.site-header')).toBeVisible()
+  await expect(page.getByRole('button', { name: '편집', exact: true })).toBeVisible()
+})
+
+test('first iPhone screen ends at the total progress line; the program order is below the fold', async ({ page, browserName }) => {
+  test.skip(browserName !== 'webkit', 'iPhone-sized layout check')
+  await page.setViewportSize({ width: 440, height: 956 })
+  await freeze(page)
+  for (const state of ['idle', 'running']) {
+    if (state === 'running') {
+      await page.getByRole('button', { name: '운동 시작', exact: true }).click()
+      await expect(page.locator('.site-header')).toBeHidden()
+      await page.waitForTimeout(500)
+    }
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const progress = (await page.locator('.total-progress').boundingBox())!
+    const order = (await page.locator('.program-overview').boundingBox())!
+    expect(progress.y + progress.height, state).toBeLessThanOrEqual(956)
+    expect(progress.y + progress.height, state).toBeGreaterThan(956 - 40)
+    expect(order.y, state).toBeGreaterThanOrEqual(956)
+  }
+  // The safety line lives at the very end of the page, after the guide links.
+  const safety = (await page.getByText('가슴 통증·어지럼이 있으면 즉시 중지').boundingBox())!
+  const links = (await page.locator('.page-links').boundingBox())!
+  expect(safety.y).toBeGreaterThan(links.y)
 })
 
 test('protects unsaved edits and restores focus when closing a dialog', async ({ page }) => {
