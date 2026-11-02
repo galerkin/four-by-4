@@ -1,6 +1,6 @@
 /* Generated at build time. */
-const VERSION = "361ee9c7134c862e";
-const ASSETS = ["apple-touch-icon.png","assets/index-BJSMbX22.js","assets/index-Do9eq0fW.css","assets/manrope-latin-wght-normal-DHIcAJRg.woff2","assets/oswald-latin-wght-normal-CzS3kehr.woff2","favicon.svg","icons/icon-192.png","icons/icon-512.png","index.html","manifest.webmanifest"];
+const VERSION = "dcb0e49d0e4d3254";
+const ASSETS = ["apple-touch-icon.png","assets/index-Bh27_RLx.js","assets/index-Do9eq0fW.css","assets/manrope-latin-wght-normal-DHIcAJRg.woff2","assets/oswald-latin-wght-normal-CzS3kehr.woff2","favicon.svg","icons/icon-192.png","icons/icon-512.png","index.html","manifest.webmanifest"];
 const PREFIX = 'four-by-four:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const assetURLs = ASSETS.map(path => new URL(path, self.registration.scope).href);
