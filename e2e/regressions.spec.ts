@@ -60,14 +60,20 @@ test('warns only when the screen cannot be kept awake', async ({ page }) => {
   await expect(page.getByRole('button', { name: '일시정지', exact: true })).toBeVisible()
 })
 
-test('shows a keep-screen-on warning when Wake Lock is unavailable', async ({ page }) => {
+test('keeps the workout screen clean and mentions a Wake Lock failure only before the next start', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request: () => Promise.reject(new Error('blocked')) } })
   })
   await page.goto('/')
   await page.getByRole('button', { name: '운동 시작', exact: true }).click()
-  await expect(page.getByText('화면이 꺼질 수 있어요')).toBeVisible({ timeout: 5000 })
+  await page.waitForTimeout(2500)
+  await expect(page.getByText('화면이 꺼질 수 있어요')).toHaveCount(0)
   await page.getByRole('button', { name: '일시정지', exact: true }).click()
+  await expect(page.getByText('화면이 꺼질 수 있어요')).toHaveCount(0)
+  await page.getByRole('button', { name: '처음부터 다시' }).click()
+  await page.getByRole('button', { name: '초기화', exact: true }).click()
+  await expect(page.getByText('운동 중 화면이 꺼질 수 있어요')).toBeVisible()
+  await page.getByRole('button', { name: '운동 시작', exact: true }).click()
   await expect(page.getByText('화면이 꺼질 수 있어요')).toHaveCount(0)
 })
 

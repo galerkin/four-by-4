@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createIntervalSteps, formatDuration, formatTime, importProgram, MAX_STEPS, NORWEGIAN_PROGRAM, parseProgram, totalSeconds } from './programs'
+import { compactTime, createIntervalSteps, formatDuration, formatTime, importProgram, MAX_STEPS, NORWEGIAN_PROGRAM, parseProgram, totalSeconds } from './programs'
 import { parseLibrary, saveToLibrary } from './library'
 
 const copy = () => structuredClone(NORWEGIAN_PROGRAM)
@@ -26,6 +26,10 @@ describe('program schema and default protocol', () => {
   it('formats countdown boundaries without showing zero too early', () => {
     expect(formatTime(239.9)).toBe('04:00')
     expect(formatTime(0.01)).toBe('00:01')
+    expect(compactTime('02:31')).toBe('2:31')
+    expect(compactTime('00:45')).toBe('0:45')
+    expect(compactTime('10:00')).toBe('10:00')
+    expect(compactTime('120:00')).toBe('120:00')
     expect(formatTime(0)).toBe('00:00')
     expect(formatTime(-10)).toBe('00:00')
     expect(formatTime(7200)).toBe('120:00')

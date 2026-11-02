@@ -39,13 +39,19 @@ export default function App() {
   const lastCue = useRef<string | null>(null)
   // Wake Lock is requested asynchronously; only warn if it is still unavailable after a moment.
   const wakeWanted = preferences.keepAwake && session.status === 'running'
-  const [wakeSettled, setWakeSettled] = useState(false)
+  // Keep the workout screen clean: a keep-screen-on problem is only mentioned before the next start —
+  // when the browser has no Wake Lock, or it failed during this visit.
+  const [wakeFailed, setWakeFailed] = useState(false)
+  const wakeActiveRef = useRef(wakeActive)
+  useEffect(() => { wakeActiveRef.current = wakeActive }, [wakeActive])
   useEffect(() => {
     if (!wakeWanted) return
-    const timeout = window.setTimeout(() => setWakeSettled(true), 2000)
-    return () => { window.clearTimeout(timeout); setWakeSettled(false) }
+    const timeout = window.setTimeout(() => { if (!wakeActiveRef.current) setWakeFailed(true) }, 2000)
+    return () => window.clearTimeout(timeout)
   }, [wakeWanted])
-  const wakeWarning = wakeWanted && wakeSettled && !wakeActive
+  const wakeWarning = preferences.keepAwake && session.status === 'idle' && (wakeFailed || !('wakeLock' in navigator))
+  // Play mode is a single full screen: bring it into view when a workout starts.
+  useEffect(() => { if (busy) window.scrollTo({ top: 0 }) }, [busy])
   const openLibrary = () => setDialog({ type: 'library' })
 
   useEffect(() => { writeStored('preferences', preferences) }, [preferences])

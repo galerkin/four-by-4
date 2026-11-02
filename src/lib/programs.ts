@@ -156,3 +156,6 @@ export function importProgram(json: string): Program {
   // Imported files cannot overwrite a built-in program or a different local program.
   return { ...program, id: newId('custom-') }
 }
+
+/** Drops the leading zero of the minutes ("02:31" → "2:31") so the play-mode digits can be larger. */
+export const compactTime = (value: string) => value.replace(/^0(?=\d:)/, '')

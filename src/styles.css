@@ -1,5 +1,13 @@
 @charset "UTF-8";
 @font-face {
+  font-family: 'Oswald Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 700;
+  src: url('@fontsource-variable/oswald/files/oswald-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0030-003A;
+}
+@font-face {
   font-family: 'Manrope Variable';
   font-style: normal;
   font-display: swap;
@@ -641,14 +649,18 @@ button.stage-goal { min-height: 44px; }
 .page-links { padding-bottom: 4px; }
 .page-safety { padding: 0 2px max(32px, env(safe-area-inset-bottom)); margin: 0; }
 /* Focus mode (running or paused): a giant countdown, the phase bar, next step and controls only. */
-.timer-card.is-focus .stage-panel { container-type: inline-size; justify-content: center; }
-.timer-card.is-focus .timer-number { font-size: 38cqw; line-height: 1; margin: 0 0 0 -.03em; letter-spacing: -.06em; }
-.timer-card.is-focus .timer-number.long-time { font-size: 30cqw; }
-.timer-card.is-focus .stage-segments { margin-top: 28px; }
+.timer-card.is-focus .stage-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+.focus-timer { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: visible; }
+.timer-card.is-focus .timer-number.focus-digits { display: flex; align-items: center; justify-content: center; margin: 0; font-family: 'Oswald Variable', 'Manrope Variable', sans-serif; font-weight: 600; letter-spacing: 0; line-height: .82; transform-origin: center; white-space: nowrap; }
+.focus-digits .digit, .focus-digits .colon { display: inline-block; text-align: center; }
+.focus-digits .digit { width: .55em; }
+.focus-digits .colon { width: .27em; }
+.timer-card.is-focus .stage-segments { margin-top: 22px; }
 .timer-card.is-focus .stage-segments > span, .timer-card.is-focus .stage-segments i { height: 10px; }
-.timer-card.is-focus .timer-next { font-size: 22px; padding: 18px 20px; margin: 28px 0 18px; }
+.timer-card.is-focus .timer-next { font-size: 22px; padding: 18px 20px; margin: 22px 0 16px; }
 .timer-card.is-focus .next-time { font-size: 26px; }
 .timer-card.is-focus .timer-toolbar { justify-content: flex-end; }
+.timer-card.is-focus { display: flex; flex-direction: column; }
 @media (max-width: 800px) {
   .app-shell.is-working .timer-card { justify-content: space-between; }
 }
@@ -661,3 +673,13 @@ html[data-bg='sweep'] body::after { transform: scaleX(var(--step-progress, 0)); 
 html[data-bg='circle'] body::after { clip-path: circle(calc(var(--step-progress, 0) * var(--fill-reach, 150vmax)) at var(--fill-x, 50%) var(--fill-y, 40%)); transition: clip-path .3s linear; }
 html[data-bg][data-phase='done'] body::after { display: none; }
 @media (prefers-reduced-motion: reduce) { html[data-bg] body::after { transition: none; } }
+/* Landscape phone in play mode: the countdown takes the whole left side, controls sit on the right. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .app-shell.is-working main > :not(.dashboard), .app-shell.is-working .dashboard > :not(.timer-card) { display: none; }
+  .app-shell.is-working .dashboard { display: block; margin-top: 0; }
+  .app-shell.is-working .timer-card.is-focus { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, 34%); grid-template-rows: auto 1fr auto; column-gap: 20px; min-height: calc(100svh - env(safe-area-inset-top) - 2px); height: calc(100svh - env(safe-area-inset-top) - 2px); }
+  .app-shell.is-working .timer-card.is-focus .timer-toolbar { grid-column: 2; grid-row: 1; }
+  .app-shell.is-working .timer-card.is-focus .stage-panel { grid-column: 1; grid-row: 1 / 4; }
+  .app-shell.is-working .timer-card.is-focus .timer-next { grid-column: 2; grid-row: 2; align-self: end; margin: 0 0 14px; }
+  .app-shell.is-working .timer-card.is-focus .timer-controls { grid-column: 2; grid-row: 3; }
+}

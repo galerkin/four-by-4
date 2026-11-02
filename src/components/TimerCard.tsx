@@ -1,5 +1,6 @@
 import { ArrowRight, Check, ChevronDown, Heart, Pause, Play, RotateCcw, SkipForward, Volume2, VolumeX } from 'lucide-react'
-import { formatTime, KIND_LABELS } from '../lib/programs'
+import { compactTime, formatTime, KIND_LABELS } from '../lib/programs'
+import { FocusTimer } from './FocusTimer'
 import { heartRateRange, type HeartProfile } from '../lib/storage'
 import { type Session, type sessionPosition } from '../lib/timer'
 
@@ -45,14 +46,16 @@ export function TimerCard({ session, position, onToggle, onReset, onSkip, onProg
         <h2 className={focus ? 'sr-only' : ''}>{complete ? (session.skippedStages ? '여기까지, 수고했어요.' : '오늘도, 잘했어요.') : step.name}</h2>
         {complete
           ? <div className="completion-display"><span className="completion-check"><Check size={44} strokeWidth={1.8} /></span><strong>{session.skippedStages ? '일부 구간 진행' : '전체 구간 완료'}</strong></div>
-          : <div className={`timer-number ${remainingSeconds >= 6000 ? 'long-time' : ''}`} role="timer" aria-label={`${step.name} 남은 시간`}>{formatTime(remainingSeconds)}</div>}
+          : focus
+            ? <FocusTimer text={compactTime(formatTime(remainingSeconds))} label={`${step.name} 남은 시간`} />
+            : <div className={`timer-number ${remainingSeconds >= 6000 ? 'long-time' : ''}`} role="timer" aria-label={`${step.name} 남은 시간`}>{formatTime(remainingSeconds)}</div>}
         {!complete && !focus && (step.target
           ? (!bpm && !active
             // Without a profile, the target itself is the entry point to calculating bpm. Not tappable mid-workout.
             ? <button className="stage-goal" onClick={onSettings}><Heart size={20} /><span>목표 최대심박 {step.target.min}–{step.target.max}%</span><span className="goal-action">bpm 계산</span></button>
             : <p className="stage-goal"><Heart size={20} /><span>{bpm ? `목표 ${bpm.min}–${bpm.max} bpm · 추정` : `목표 최대심박 ${step.target.min}–${step.target.max}%`}</span></p>)
           : <p className="stage-goal"><span>{KIND_LABELS[step.kind]} · 내 페이스대로</span></p>)}
-        {wakeWarning && <p className="timer-warning">화면이 꺼질 수 있어요. 화면을 켜 두세요.</p>}
+        {wakeWarning && !focus && <p className="timer-warning">운동 중 화면이 꺼질 수 있어요. 자동 잠금을 잠시 꺼 두세요.</p>}
         {!focus && <p className="stage-cue">{complete ? '물을 마시고 편안해질 때까지 쉬어가세요.' : step.cue || '내 몸의 신호에 귀 기울여요.'}</p>}
         <div className="stage-segments" aria-hidden="true">{steps.map((item, index) => <span key={item.id} className={`kind-${item.kind} ${index < stepIndex || complete ? 'done' : ''} ${index === stepIndex && !complete ? 'current' : ''}`}><i style={{ width: index < stepIndex || complete ? '100%' : index === stepIndex ? `${position.stepProgress * 100}%` : '0%' }} /></span>)}</div>
       </div>
