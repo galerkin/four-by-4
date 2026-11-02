@@ -1,6 +1,6 @@
 /* Generated at build time. */
-const VERSION = "76eb0623403c7414";
-const ASSETS = ["apple-touch-icon.png","assets/index-B8lHeXOH.js","assets/index-CnkWkj80.css","assets/manrope-latin-wght-normal-DHIcAJRg.woff2","favicon.svg","icons/icon-192.png","icons/icon-512.png","index.html","manifest.webmanifest"];
+const VERSION = "2681a36582d25e61";
+const ASSETS = ["apple-touch-icon.png","assets/index-B9oil81x.css","assets/index-DTgG6XOS.js","assets/manrope-latin-wght-normal-DHIcAJRg.woff2","favicon.svg","icons/icon-192.png","icons/icon-512.png","index.html","manifest.webmanifest"];
 const PREFIX = 'four-by-four:' + self.registration.scope + ':';
 const CACHE = PREFIX + VERSION;
 const assetURLs = ASSETS.map(path => new URL(path, self.registration.scope).href);
